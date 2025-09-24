@@ -1,0 +1,98 @@
+Passo 1: Escolher entre FPU no Datapath ou como Coprocessador
+
+Opção 1: FPU no Datapath: A FPU se integra diretamente ao pipeline e ao controle de fluxo do processador.
+Opção 2: FPU como Coprocessador: A FPU funciona separada, e o processador chama a FPU para executar instruções específicas de ponto flutuante.
+
+Decisão: Vamos assumir que a FPU será integrada ao datapath (Opção 1) para simplificar a implementação.
+
+Passo 2: Modificar o Datapath
+
+Adicionar a FPU:
+
+Crie um módulo FPU que realize as operações de ponto flutuante: adição, subtração, multiplicação e divisão de números em formato IEEE-754 (32 ou 64 bits).
+
+A FPU precisa de entradas para os dados (os operandos) e produzir um resultado (como a ALU).
+
+Modificar o MUX (multiplexador):
+
+MUX para a ALU/FPU: Você precisa adicionar um MUX no datapath para decidir se a operação será realizada pela ALU ou pela FPU. O sinal de controle será gerado pela Control Unit.
+
+Conectar a FPU ao Datapath:
+
+O resultado da ALU e os dados de entrada para a FPU devem ser alimentados pelos registradores.
+
+O mux_alu e a extend precisam ser ajustados para também direcionar os dados para a FPU, dependendo da operação.
+
+Passo 3: Modificar a Control Unit
+
+Adicionar sinais de controle para a FPU:
+
+Sinais de controle FPU: Você precisará de sinais como FPUOp para identificar quando usar a FPU e qual operação de ponto flutuante executar.
+
+Atualize a lógica de controle para distinguir entre operações inteiras e de ponto flutuante.
+
+Modificar a lógica de controle da unidade:
+
+Alterar a Control Unit para gerar sinais adequados para a FPU, por exemplo, definir se a operação será realizada pela ALU ou FPU (usando o MUX).
+
+Passo 4: Modificar o Pipeline
+
+Ajustar o pipeline para lidar com a FPU:
+
+Latency (latência): Como a FPU pode ter uma latência maior que a ALU, você precisará ajustar o pipeline para permitir "stall" (pausas) até que o resultado da FPU esteja pronto.
+
+Certifique-se de que o Control Unit gerencie corretamente as pausas quando uma operação de ponto flutuante for realizada.
+
+Passo 5: Modificar a Memória
+
+Adicionar suporte a dados de ponto flutuante na memória:
+
+Memória de ponto flutuante: A memória e os registradores devem ser capazes de lidar com números de ponto flutuante no formato IEEE-754 (32 ou 64 bits). Ajuste o sistema de memória para suportar isso, principalmente no que diz respeito a como armazenar e carregar esses dados.
+
+Passo 6: Ajustar as Instruções de Ponto Flutuante
+
+Instruções de ponto flutuante:
+
+Adicionar instruções como: FADD (adição de ponto flutuante), FSUB (subtração), FMUL (multiplicação), FDIV (divisão), FLD (carregar ponto flutuante), FSD (salvar ponto flutuante).
+
+Modifique a decodificação de instruções para que essas instruções sejam reconhecidas e gerem os sinais de controle para a FPU.
+
+Passo 7: Testes e Validação
+
+Testes de Unidade:
+
+Implemente testbench para verificar se as operações de ponto flutuante estão funcionando corretamente (como soma, subtração, multiplicação e divisão).
+
+Testes de Integração:
+
+Verifique como as operações da ALU e da FPU interagem no datapath e se o sistema lida corretamente com as operações de ponto flutuante.
+
+Resumindo as Modificações Necessárias
+
+Datapath:
+
+Adicionar módulo FPU.
+
+Inserir MUX para selecionar entre ALU e FPU.
+
+Modificar conexões para alimentar a FPU com dados.
+
+Control Unit:
+
+Adicionar sinais de controle como FPUOp para escolher a operação de ponto flutuante.
+
+Modificar a lógica para gerenciar operações de ponto flutuante.
+
+Pipeline:
+
+Ajustar o pipeline para considerar a latência das operações de ponto flutuante.
+
+Gerenciar "stall" quando a FPU estiver ocupada.
+
+Memória:
+
+Garantir suporte para dados de ponto flutuante no formato IEEE-754.
+
+Instruções:
+
+Adicionar e modificar a decodificação para instruções de ponto flutuante (FADD, FSUB, FMUL, etc.).
