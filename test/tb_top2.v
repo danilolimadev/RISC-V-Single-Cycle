@@ -1,4 +1,6 @@
-module tb_top;
+`timescale 1ns / 1ps
+
+module tb_top2;
 
   // Entradas
   reg CLK, RST;
@@ -16,6 +18,8 @@ module tb_top;
   reg [31:0] expected_RD1, expected_RD2;
   reg [31:0] expected_ALUResult;
   reg expected_Zero;
+
+  integer i;
 
   // Instancia o módulo top
   top uut (
@@ -42,7 +46,7 @@ module tb_top;
     $readmemh("program.hex", uut.instr_mem.rom);  // Carrega o programa
 
     // Inicializa os registradores
-    for (int i = 0; i < 32; i = i + 1)
+    for (i = 0; i < 32; i = i + 1)
     begin
       uut.reg_file.rf[i] = 32'b0;
     end
@@ -54,35 +58,94 @@ module tb_top;
     // Reseta o processador
     #10;
     RST = 1;
-    #10;
+    #5;
 
     // Executar a simulação
-    // Defina os valores esperados para cada ciclo baseado no seu `program.hex`
-    // Abaixo, o código fará algumas verificações para o primeiro ciclo, como exemplo.
+    // Teste ciclos com os valores esperados para cada instrução do seu programa.
 
-    // Teste ciclo 1 (por exemplo, instrução ADDI)
+    // Teste ciclo 1: LUI
     expected_PC = 32'h00000004;
     expected_RD1 = 32'b0;  // Registrador 0 deve ter valor 0
     expected_RD2 = 32'b0;  // Registrador 0 deve ter valor 0
-    expected_ALUResult = 32'h00000001;  // Resultados esperados da ALU
+    expected_ALUResult = 32'h12345000;  // LUI x1, 0x12345
     expected_Zero = 1'b0;
-    #20;  // Aguarda 1 ciclo
+    #10;  
     verificar;
 
-    // Teste ciclo 2 (por exemplo, instrução SUBI)
+    // Teste ciclo 2: ADDI
     expected_PC = 32'h00000008;
-    expected_RD1 = 32'h00000001;  // Registrador 1
-    expected_RD2 = 32'b0;         // Registrador 2
-    expected_ALUResult = 32'hFFFFFFFE;  // Resultado esperado
+    expected_RD1 = 32'h12345000;  // Registrador 1 deve ter valor 0x12345000
+    expected_RD2 = 32'b0;         // Registrador 2 deve ser 0
+    expected_ALUResult = 32'h12345005;  // ADDI x2, x1, 5 -> 0x12345000 + 5
     expected_Zero = 1'b0;
-    #20;
+    #10;
     verificar;
 
-    // Mais ciclos podem ser verificados dessa forma com os valores esperados para cada um.
-    // Continue a simulação por ciclos suficientes para cobrir todas as instruções em `program.hex`.
-    
-    // Simule por 200 ns ou até que todas as instruções sejam executadas
-    #200;
+    // Teste ciclo 3: ADD
+    expected_PC = 32'h0000000C;
+    expected_RD1 = 32'h12345000;  // x1
+    expected_RD2 = 32'h12345005;  // x2
+    expected_ALUResult = 32'h12345005 + 32'h12345005;  // ADD x3, x1, x2
+    expected_Zero = 1'b0;
+    #10;
+    verificar;
+
+    // Teste ciclo 4: SUB
+    expected_PC = 32'h00000010;
+    expected_RD1 = 32'h12345010;  // x3
+    expected_RD2 = 32'h12345005;  // x2
+    expected_ALUResult = 32'h12345010 - 32'h12345005;  // SUB x4, x3, x2
+    expected_Zero = 1'b0;
+    #10;
+    verificar;
+
+    // Teste ciclo 5: OR
+    expected_PC = 32'h00000014;
+    expected_RD1 = 32'h12345000;  // x1
+    expected_RD2 = 32'h12345005;  // x2
+    expected_ALUResult = 32'h12345000 | 32'h12345005;  // OR x5, x1, x2
+    expected_Zero = 1'b0;
+    #10;
+    verificar;
+
+    // Teste ciclo 6: SRL
+    expected_PC = 32'h00000018;
+    expected_RD1 = 32'h12345000;  // x1
+    expected_RD2 = 32'h12345005;  // x2
+    expected_ALUResult = 32'h12345000 >> 5;  // SRL x6, x5, x2
+    expected_Zero = 1'b0;
+    #10;
+    verificar;
+
+    // Teste ciclo 7: SLTU
+    expected_PC = 32'h0000001C;
+    expected_RD1 = 32'h12345005;  // x2
+    expected_RD2 = 32'h12345010;  // x3
+    expected_ALUResult = 32'b0;  // SLTU x7, x2, x3 (0x12345005 < 0x12345010)
+    expected_Zero = 1'b0;
+    #10;
+    verificar;
+
+    // Teste ciclo 8: BEQ
+    expected_PC = 32'h00000020;
+    expected_RD1 = 32'h12345005;  // x2
+    expected_RD2 = 32'h12345005;  // x2 (igual)
+    expected_ALUResult = 32'b0;  // BEQ x2, x2, +4 (zero -> branch)
+    expected_Zero = 1'b1;
+    #10;
+    verificar;
+
+    // Teste ciclo 9: BNE
+    expected_PC = 32'h00000024;
+    expected_RD1 = 32'h12345005;  // x2
+    expected_RD2 = 32'h12345010;  // x3 (diferente)
+    expected_ALUResult = 32'b0;  // BNE x2, x3, +4 (não zero -> branch)
+    expected_Zero = 1'b0;
+    #10;
+    verificar;
+
+    // Simule por mais alguns ciclos para garantir que todas as instruções foram executadas corretamente.
+    #10;
     $stop;  // Pare a simulação
   end
 
@@ -90,27 +153,40 @@ module tb_top;
   task verificar;
     begin
       // Verificar se os valores atuais correspondem aos valores esperados
-      if (uut.PC !== expected_PC) begin
+      if (uut.PC !== expected_PC)
+      begin
         $display("Erro no PC: Esperado %h, mas obteve %h", expected_PC, uut.PC);
+      end else begin
+        $display("PC Correto: Esperado e obteve %h", uut.PC);
       end
 
-      if (uut.reg_file.rf[1] !== expected_RD1) begin
+      if (uut.reg_file.rf[1] !== expected_RD1)
+      begin
         $display("Erro no RD1: Esperado %h, mas obteve %h", expected_RD1, uut.reg_file.rf[1]);
+      end else begin
+        $display("RD1 Correto: Esperado e obteve %h", uut.reg_file.rf[1]);
       end
 
-      if (uut.reg_file.rf[2] !== expected_RD2) begin
+      if (uut.reg_file.rf[2] !== expected_RD2)
+      begin
         $display("Erro no RD2: Esperado %h, mas obteve %h", expected_RD2, uut.reg_file.rf[2]);
+      end else begin
+        $display("RD2 Correto: Esperado e obteve %h", uut.reg_file.rf[2]);
       end
 
-      if (uut.alu_inst.ALUResult !== expected_ALUResult) begin
+      if (uut.alu_inst.ALUResult !== expected_ALUResult)
+      begin
         $display("Erro no ALUResult: Esperado %h, mas obteve %h", expected_ALUResult, uut.alu_inst.ALUResult);
+      end else begin
+        $display("ALUResult Correto: Esperado e obteve %h", uut.alu_inst.ALUResult);
       end
 
-      if (uut.alu_inst.Zero !== expected_Zero) begin
+      if (uut.alu_inst.Zero !== expected_Zero)
+      begin
         $display("Erro no Zero: Esperado %b, mas obteve %b", expected_Zero, uut.alu_inst.Zero);
+      end else begin
+        $display("Zero Correto: Esperado e obteve %h", uut.alu_inst.Zero);
       end
-
-      // Você pode adicionar mais verificações para outros sinais, como o Result final.
     end
   endtask
 

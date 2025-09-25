@@ -49,7 +49,7 @@ module tb_top;
     #10;
     // Aqui você pode simular várias instruções com diferentes tipos de operação
 
-    #200;  // Simule por 200 ns
+    #100;  // Simule por 200 ns
     $stop;  // Pare a simulação
   end
 

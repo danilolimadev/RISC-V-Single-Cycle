@@ -6,11 +6,11 @@ module top (
   //Unidade de Controle
   wire [6:0] op;
   wire [2:0] funct3;
-  wire [6:0] funct7;
+  wire funct7;
   wire PCSrc;
-  wire ResultSrc;
+  wire [1:0] ResultSrc;
   wire MemWrite;
-  wire [2:0] ALUControl;
+  wire [3:0] ALUControl;
   wire ALUSrc;
   wire [1:0] ImmSrc;
   wire RegWrite;
@@ -25,7 +25,7 @@ module top (
   wire [31:0] Instr;
   assign op = Instr [6:0];
   assign funct3 = Instr [14:12];
-  assign funct7 = Instr [30:24];
+  assign funct7 = Instr [30];
   wire [4:0] A1;
   wire [4:0] A2;
   wire [4:0] A3;
@@ -56,8 +56,6 @@ module top (
   wire [31:0] ImmExt;
 
   control_unit ctrl_unit (
-                 .CLK(CLK),
-                 .RST(RST),
                  .op(op),
                  .funct3(funct3),
                  .funct7(funct7),
@@ -112,7 +110,6 @@ module top (
           );
 
   alu alu_inst (
-        .CLK(CLK),
         .ALUControl(ALUControl),
         .SrcA(RD1),
         .SrcB(SrcB),
@@ -131,6 +128,7 @@ module top (
   mux_result mresult (
                .ALUResult(ALUResult),
                .ReadData(RD),
+               .PCPlus4(PCPlus4),
                .ResultSrc(ResultSrc),
                .Result(Result)
              );
@@ -141,7 +139,6 @@ module top (
             );
 
   extend ext (
-           .CLK(CLK),
            .IN(IN),
            .ImmSrc(ImmSrc),
            .ImmExt(ImmExt)

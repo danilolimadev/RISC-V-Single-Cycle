@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-module tb_top;
+module tb_top3;
 
   // Entradas
   reg CLK, RST;
