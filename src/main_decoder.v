@@ -29,7 +29,7 @@ module main_decoder(
     7'b0110111:
       control_signals = 11'b1_00_1_0_00_0_11;//U-type lui
     7'b0010111:
-      control_signals = 11'b1_00_1_0_00_0_01;// U-type AUIPC
+      control_signals = 11'b1_00_1_0_00_0_01;//U-type AUIPC
     7'b0000000:
       control_signals = 11'b0_00_0_0_00_0_00;//reset conditionm
 
