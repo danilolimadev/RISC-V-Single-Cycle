@@ -1,0 +1,117 @@
+1) Visão geral — duas abordagens possíveis
+
+A) Integrar a FPU no datapath (como unidade funcional adicional):
+
+A FPU é uma unidade funcional semelhante à ALU. Recebe operandos vindos do banco de registradores (ou de multiplexadores), executa a operação FP e devolve resultado para o mux de escrita (writeback).
+
+Pontos a modificar:
+
+Unidade de controle / decoder — detectar instruções de ponto-flutuante (opcode 7'b1010011 no RISC-V RV32F) e gerar sinal de controle para selecionar a FPU como fonte de writeback.
+
+Datapath (top): adicionar FPResult wire, instanciar módulo fpu, adicionar mux/seleção para que o WD3 (WD write data do register file) receba FPResult quando a instrução for FP.
+
+Opcional: criar um floating-point register file separado (spec RISC-V) ou usar o mesmo banco de registradores inteiros para armazenar pattern de 32-bit (mais simples, mas não padrão).
+
+Se a FPU for lenta (muitos níveis logicos): passar para multi-cycle ou pipeline (single-cycle com FPU combinacional completa pode ser muito lento/sintetizável ruim).
+
+Vantagem: mais direta para designs pequenos/educacionais; simples controle de writeback.
+
+Desvantagem: FPU combinacional completa pode violar requisitos de timing; add complexidade ao path crítico.
+
+B) Integrar a FPU como coprocessador (unidade separada com handshake / multi-cycle):
+
+A FPU atua como unidade separada com interface handshake (start/done) ou registradores de comunicação (coproc command).
+
+Pontos a modificar:
+
+Instruções que invocam FPU disparam um sinal de start e CPU precisa aguardar (stall) até done.
+
+Adicionar lógica de stall no datapath (ou pipeline) para segurar escrita e PC enquanto FPU processa.
+
+Implementar registradores de status/exceção para FPU (NaN/Inf/exceções).
+
+Vantagem: permite implementação da FPU em várias etapas (multi-cycle) sem penalizar todo o caminho crítico do processador.
+
+Desvantagem: requer mecanismo de stall/handshake e mudanças maiores no datapath/controle.
+
+2) Passo-a-passo detalhado (integração no datapath — opção implementada aqui)
+
+Abaixo um roteiro prático e sequencial para integrar uma FPU como unidade funcional no datapath (single-cycle style):
+
+Decodificação
+
+Detectar opcode 1010011 (FPU opcodes). Pode ser feito:
+
+No main_decoder ou
+
+Simplesmente no top.v com assign UseFPU = (op == 7'b1010011); (solução mínima, não precisa alterar control_unit se preferir solução não intrusiva).
+
+Definir como mapear funct3/funct7 para operações FP (FADD, FSUB, FMUL, FDIV, etc). Inicialmente mapear só FADD/FSUB.
+
+Criar o módulo FPU
+
+Definir interface simples: module fpu(input [31:0] a, input [31:0] b, input [1:0] fp_op, output [31:0] result).
+
+Implementar operações desejadas. Para começar: add/sub (IEEE-754 simplificado). Para implementação completa: normalização, rounding, tratamento de NaN/Inf/denormals, exceções.
+
+Conectar no datapath
+
+Ler operandos desde RD1 e RD2 (saídas do register_file) e pôr como entradas da FPU.
+
+Instanciar a FPU em top.v e criar wire [31:0] FPResult.
+
+Criar wire UseFPU (conforme passo 1) e um wire [31:0] FinalResult.
+
+assign FinalResult = UseFPU ? FPResult : Result; (onde Result é o resultado antigo do mux_result que já escolhe entre ALU/Data/PC).
+
+Mudar a instância do register_file para escrever WD3(FinalResult).
+
+Ajustar o controle / writeback
+
+Garante que RegWrite permaneça ativo para instruções FPU para permitir escrita do resultado.
+
+Opcional: se preferir, adicionar sinal específico vindo do main_decoder (UseFPU) em vez do assign direto em top.v.
+
+Testes
+
+Criar um testbench que carregue instruções FP no program.hex, ou adicionar testes unitários do módulo fpu.v (recomendado inicialmente).
+
+Verificar resultados (hex) e visualizar ondas com GTKWave.
+
+Melhorias (próximos passos)
+
+Implementar floating-point register file (32 regs FP) e suporte a instruções de movimentação (FMV) entre GR e FPR, se desejar compatibilidade com RV32F.
+
+Implementar multiplas funções FP (mul/div) e tratamento de exceções.
+
+Adaptar a microarquitetura para multi-cycle ou pipeline se a FPU for lenta.
+
+3) O que eu implementei no seu repositório (integração mínima já feita)
+
+Eu realizei uma integração prova-de-conceito com as seguintes decisões práticas (minimamente intrusiva e fácil de testar):
+
+Criei src/fpu.v — um FPU simplificada que implementa add/sub em ponto flutuante (IEEE-754 simplificado).
+
+Observações sobre fpu.v: não é uma implementação completa IEEE-754 (não trata NaN/Inf/denormais, arredondamento completo nem exceções). Faz normalização básica e truncamento (útil para fins educacionais e testes iniciais).
+
+Modifiquei src/top.v para:
+
+Declarar wire UseFPU, wire [31:0] FPResult e wire [31:0] FinalResult.
+
+assign UseFPU = (op == 7'b1010011); — detecção simples de opcode de FPU.
+
+Instanciar a FPU: fpu fp_unit(.a(RD1), .b(RD2), .op(funct3[0]), .result(FPResult)); (uso simplificado: mapa funct3[0] para add/sub).
+
+assign FinalResult = UseFPU ? FPResult : Result;
+
+Alterei a instância do register_file para usar .WD3(FinalResult) (ou seja, se for instrução FPU grava FPResult, caso contrário grava Result existente).
+
+Backup / cópias
+
+Fiz backup do top original: src/top.v.bak.
+
+Também gravei uma cópia src/top_fpu.v (para referência).
+
+Compactei o projeto modificado para download:
+
+Arquivo gerado: /mnt/data/RISC-V_Single_Cycle_with_FPU.zip
