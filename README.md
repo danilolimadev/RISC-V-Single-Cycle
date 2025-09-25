@@ -1,72 +1,60 @@
-# RISC-V-Single-Cycle
-# RISC-V Single Cycle CPU Implementation
+# RISC-V Single Cycle CPU
 
-Este projeto implementa um processador RISC-V de ciclo único (single cycle) utilizando Verilog. O objetivo é fornecer uma simulação completa da execução de instruções RISC-V em um processador de ciclo único. O projeto inclui módulos como a unidade de controle, ALU, memória, registradores, entre outros.
+Este projeto implementa um processador **RISC-V de ciclo único (single cycle)** em Verilog. O objetivo é fornecer uma base educacional para estudo da arquitetura RISC-V e da implementação de processadores digitais.
 
-## Estrutura do Projeto
+## 📌 Visão Geral
 
-A estrutura do repositório está dividida da seguinte forma:
+O processador segue a arquitetura **RISC-V RV32I** e executa cada instrução em um único ciclo de clock. Todos os módulos foram desenvolvidos de forma modular para facilitar o entendimento, a simulação e a futura expansão do design.
 
-- **src/**: Contém os arquivos Verilog para cada módulo individual, como:
-  - `control_unit.v`: Implementação da unidade de controle.
-  - `mux_pc.v`: Multiplexador para o PC.
-  - `pc.v`: Registrador do PC.
-  - `instruction_memory.v`: Memória de instrução.
-  - `register_file.v`: Arquivo de registradores.
-  - `alu.v`: Unidade lógica e aritmética.
-  - `data_memory.v`: Memória de dados.
-  - `mux_result.v`: Multiplexador de resultado.
-  - `pc_plus_4.v`: Soma de 4 para o PC.
-  - `extend.v`: Extensor de sinal para imedidos.
-  - `pc_target.v`: Cálculo do alvo do PC.
-  - `top.v`: Arquitetura geral do processador.
+## 🗂 Estrutura do Projeto
 
-- **test/**: Contém o banco de testes (`tb_top.v`) para validar o comportamento do processador.
+- **src/** → Implementação dos módulos em Verilog:
+  - **Decodificadores e Controle**
+    - `control_unit.v`: Unidade de controle principal.
+    - `main_decoder.v`: Decoder de instruções em sinais de controle.
+    - `alu_decoder.v`: Decoder de funções específicas da ALU.
+  - **Processamento**
+    - `alu.v`: Unidade lógica e aritmética.
+    - `mux_alu.v`: Multiplexador das entradas da ALU.
+    - `mux_result.v`: Multiplexador de seleção do resultado final.
+  - **PC (Program Counter)**
+    - `pc.v`: Registrador de PC.
+    - `pc_plus_4.v`: Incremento de PC.
+    - `pc_target.v`: Cálculo do endereço alvo (branch/jump).
+    - `mux_pc.v`: Multiplexador de seleção do próximo PC.
+  - **Memórias e Registradores**
+    - `instruction_memory.v`: Memória de instruções.
+    - `data_memory.v`: Memória de dados.
+    - `register_file.v`: Banco de registradores.
+    - `extend.v`: Extensor de sinal de imediatos.
+  - **Integração**
+    - `top.v`: Módulo de topo que conecta todos os componentes.
 
-- **program.hex**: Arquivo com o código em formato hexadecimal para ser carregado na memória de instrução.
+- **test/**
+  - `tb_top.v`: Testbench principal para simulação do processador.
 
-- **Makefile**: Opcional, mas recomendado para facilitar a execução da simulação.
+- **program.hex**  
+  Arquivo de programa em formato hexadecimal carregado pela memória de instruções.
 
-## Como Rodar a Simulação
+- **images/**  
+  Capturas de tela da simulação e resultados.
 
-1. **Instalar ferramentas de simulação Verilog**:
-   - Para simular o código, você pode usar ferramentas como [ModelSim](https://www.mentor.com/products/fpga/modelsim) ou [Icarus Verilog](http://iverilog.icarus.com/).
-   
-2. **Compilar e simular**:
-   - Se estiver usando o ModelSim:
-     ```bash
-     vlib work
-     vcom src/*.v
-     vsim test.tb_top
-     run -all
-     ```
-   - Para Icarus Verilog:
-     ```bash
-     iverilog -o cpu_tb src/*.v test/tb_top.v
-     vvp cpu_tb
-     ```
+## ⚙️ Como Executar
 
-3. **Analisar resultados**:
-   - Durante a simulação, o `monitor` no testbench irá exibir o valor do PC. Isso pode ser alterado para monitorar outras variáveis de interesse, como registradores ou a memória.
+1. Compile todos os arquivos Verilog localizados em `src/`.
+2. Carregue `program.hex` na memória de instruções.
+3. Utilize `tb_top.v` como testbench para rodar a simulação.
+4. Verifique os sinais internos e compare os resultados com as imagens em `images/`.
 
-## Módulos Implementados
+## 📖 Requisitos
 
-- **Unidade de Controle**: Controla o fluxo das instruções, decide se o próximo PC é atualizado, qual operação ALU deve ser realizada, entre outras tarefas.
-  
-- **Registradores e Memória**: Implementação de um arquivo de registradores e uma memória de dados simples, junto com a memória de instruções que é carregada de um arquivo `.hex`.
+- Simulador Verilog (Icarus Verilog, ModelSim ou equivalente).
+- Visualizador de ondas (GTKWave recomendado).
 
-- **ALU (Unidade Lógica e Aritmética)**: Implementa operações como adição, subtração, OR lógico, shift e comparação.
+## 🚀 Próximos Passos
 
-- **Multiplexadores**: Vários multiplexadores para controle de fluxo de dados e seleção de entradas para a ALU e outros componentes.
+- Implementação de versões **multi-cycle** e **pipeline** para comparação de desempenho.
+- Suporte a instruções adicionais da arquitetura RISC-V.
+- Testes com programas maiores e benchmarks.
 
-## Arquivo de Programa
-
-O arquivo `program.hex` contém o código em formato hexadecimal que será carregado na memória de instruções. Você pode modificá-lo para testar diferentes programas.
-
-## Contribuições
-
-Se você quiser contribuir para o projeto, sinta-se à vontade para abrir um pull request. Novas implementações de instruções ou otimizações para o design do processador são sempre bem-vindas.
-
-## Licença
-
-Este projeto está licenciado sob a [MIT License](LICENSE).
+---
